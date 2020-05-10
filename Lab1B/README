@@ -1,0 +1,12 @@
+NAME: Anh Mac
+EMAIL: anhmvc@gmail.com
+UID: 905111606
+
+A multi-process telnet-like client and server that demonstrates compressed network communication. The 2 executables lab1b-client and lab1b-server builds a client-side and server-side agents that handle the network communication and shield the application from other complexities.
+
+lab1b-client.c: C source module that compile to the executable lab1b-client.
+
+lab1b-server.c: C source module that compile to the executable lab1b-server.
+
+Makefile: compile and build the executables lab1b-client and lab1b-server from the C source files with distinct targets for each file and a default target for both. A clean target that returns the directory to its un-tarred states. And a dist target that builds the contents of the tarball.
+

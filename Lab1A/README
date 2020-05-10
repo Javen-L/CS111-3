@@ -1,0 +1,22 @@
+NAME: Anh Mac
+EMAIL: anhmvc@gmail.com
+UID: 905111606
+
+1. Description of included files
+
+lab1a.c: a C source module that build a multi-process telnet-like client and server. The project is divided into 2 parts: creating a character-at-a-time, full duplex terminal I/O and a polled I/O that uses pipes to pass input and output between 2 processes.
+
+Makefile: a Makefile to build the program and tarball with 3 defaults: make, dist, and clean. "make" compiles the .c file with -Wall and -Wextra options. "dist" builds the tarball to contain the 3 files listed here. "clean" removes the tarball and any executable built by the Makefile.
+
+2. Research references
+
+I used discussion slides uploaded to the course site by TAs, and I studied the API of each of the functions listed in the spec through their man pages.
+
+- termios(3), tcgetattr(3), tcsetattr(3), etc. ... for manipulating terminal attributes
+- fork(2) ... for creating new processes
+- waitpid(2) ... to allow one process to monitor another process's state, and react to changes in state
+- exec(3) ... a family of calls for loading a new program into a running process
+- pipe(2) ... for inter-process communication
+- kill(3) ... for sending signals to processes by PID
+- strerror(3) ... descriptions associated with system call errors
+- poll(2) ... to wait for the first of multiple input sources

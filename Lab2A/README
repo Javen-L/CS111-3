@@ -1,0 +1,56 @@
+NAME: Anh Mac
+EMAIL: anhmvc@gmail.com
+UID: 905111606
+
+lab2_add.c: a C source module that implements and tests a multithreaded programs with a basic add routine that adds to a shared variable
+
+lab2_list.c: a C source module that implements and tests a multithreaded program with the interface specifications of a sorted doubly linked list package described in the header file SortedList.h
+
+SortedList.h: header file that includes interface specifications for a sorted doubly linked list and 4 functions: insert, delete, lookup, length
+
+SortedList.c: a C source module that implements the 4 functions that were specified in the SortedList header file.
+
+test_add.sh: a bash script that runs exhaustive tests for lab2_add
+
+test_list.sh: a bash script that runs exhaustive tests for lab2_list
+
+Makefile: build the deliverable programs lab2_add and lab2_list, outputs, graphs, and tarball. The build target compile all programs. The tests target run all specified test cases to generate results in CSV files. The graph target use gnuplot(1) and the supplied data reduction scripts to generate the required graphs. THe dist target create the deliverable tarball. The clean target delete all programs and output created by the Makefile.
+
+QUESTIONS 2.1.1 - causing conflicts:
+Why does it take many iterations before errors are seen?
+Why does a significantly smaller number of iterations so seldom fail?
+
+Answer: When iterations are increased, a thread is more likely to not be able to accomplish its task before the preempted time slice and context switches will occur more often while a thread is executing a critical section, which leads to more errors. With smaller number of iterations, the execution time for each thread is less, which allowed them to finish operating on the critical section before the scheduled time slice happen. Thus, a significantly smaller number of iterations will seldom fail due to its ability to finish its execution on a shared variable before the time slice expires.
+
+QUESTION 2.1.2 - cost of yielding:
+Why are the --yield runs so much slower?
+Where is the additional time going?
+Is it possible to get valid per-operation timings if we are using the --yield option?
+If so, explain how. If not, explain why not.
+
+Answer: the --yield runs much slower due to the fact that each thread is required to yield immediately, and the OS is performing much more context switches that lead to higher overhead on the overall execution time. Context switches would include the transfer of control from user mode to the kernel, initiating a trap, various saves and stores of register states, memory states, and caches of the current and new thread, and re-entrance into the user mode. Due to this high overhead from many context switches, it is difficult to estimate the total time for these operations, so it is impossible to deduct such time from the total runtime of each operation. Due to the difficulty in obtain a precise measurement for overheads, we cannot get valid per-operation timings when using the --yield option.
+
+QUESTION 2.1.3 - measurement errors:
+Why does the average cost per operation drop with increasing iterations?
+If the cost per iteration is a function of the number of iterations, how do we know how many iterations to run (or what the "correct" cost is)?
+
+Answer: The total runtime is recorded from the start of the creation of the first thread to the joining of the last thread. With smaller iteration, the overhead of these operations constitute a large factor of our total runtime, which leads to high average cost per operations. However, with increasing iterations, these overheads become increasingly insignificant to our total runtime, contributing less and less as it approaches zero to the average cost per operation. To find the "correct" cost, we can run tests with larger iterations and observe as to how the cost per operation curve approaches an asymptote as the number of iterations increase.
+
+QUESTION 2.1.4 - costs of serialization:
+Why do all of the options perform similarly for low numbers of threads?
+Why do the three protected operations slow down as the number of threads rises?
+
+Answer: All of the options perform similarly for low numbers of threads because each thread has a higher probability of running to completion before another thread enters the critical section, and it would be less likely for a thread to have to wait to obtain a lock from another thread. When the number of threads rises, it becomes more likely for a thread to have to wait for the lock as it takes longer for one thread to run to completion in the critical section before another thread arrives. Moreover, with preemption, a particular thread with the lock would take much longer to be rescheduled while all other threads are blocked and must wait for this to happen. With the overheads of threads waiting on one another, the three protected operations will have higher total runtime and slow down.
+
+QUESTION 2.2.1 - scalability of Mutex
+Compare the variation in time per mutex-protected operation vs the number of threads in Part-1 (adds) and Part-2 (sorted lists).
+Comment on the general shapes of the curves, and explain why they have this shape.
+Comment on the relative rates of increase and differences in the shapes of the curves, and offer an explanation for these differences.
+
+Answer: In the adds test, the time per mutex-protected operation first increases almost linearly, then gradually approaches an asymptote as the number of threads increases past 4. In the sorted list tests, the time per operation increases linearly as the number of threads increases. According to data collected, the rate of increase of the adds tests is smaller and lower than that of the sorted list tests. Both graph observed postive, increased trends in time per operation as when more threads are running concurrently, more memory would be allocated for the entire process,causing higher waiting time on average. One factor that could play into how the adds tests observe lower increasing rate is because the critical section in the add routine is much smaller than the Sorted Lists tests, so the waiting time thus would only contribute a small amount to the total time per operation. While other overheads such as the allocation and deallocation of memory and threads can contribute to the time per operations, these tasks can be performed concurrently as they are not part of the critical section, so they would not increase linearly as the number of threads increases.
+
+QUESTION 2.2.2 - scalability of spin locks
+Compare the variation in time per protected operation vs the number of threads for list operations protected by Mutex vs Spin locks. Comment on the general shapes of the curves, and explain why they have this shape.
+Comment on the relative rates of increase and differences in the shapes of the curves, and offer an explanation for these differences.
+
+Answer: The variation in time per protected operation increases linearly as the number of threads increaases for both mutex and spin locks protected operations. The curve for spin locks is slightly lower than that of mutexes in the early of the trend, which means they seem to cost less than mutexes for small number of threads; however, as the number of threads increases, the cost per operation for spin locks exceeds mutexes. The data for this observation is clearer for in the add program than the list program. This is due to how the system allocate more time to spinning threads, and more CPU time is thus wasted. On the other hand, when a thread is locked by mutexes, other threads that do not have the lock simply sleeps and await to be waken once the thread holding the lock finishes. So, the CPU would simply ignore these other processes when a mutex is occupied and not waste as much time.

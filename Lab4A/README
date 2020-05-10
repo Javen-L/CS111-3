@@ -1,0 +1,19 @@
+NAME: Anh Mac
+EMAIL: anhmvc@gmail.com
+UID: 905111606
+
+Beaglebone 
+Serial Number: BBGW16062888
+MAC: 2CF7F1065510
+
+my_beaglebone.jpg: a selfie of myself holding my assembled Beaglebone
+
+connected.png: a screenshot from a USB terminal command session connected to my system, showing that I gave it a name and configured network access
+
+copy.png: a screenshot from a local session in which I copy a hello world program from my laptop/desktop to my Beaglebone with FileZilla
+
+build_run.png: a screenshot from a WIFI SSH session in which I build and run a trivial (hello world) program
+
+git.png: a screenshot from a WIFI SSH session in which I install git and clone a repository
+
+Makefile: contains 2 targets, a default target that build the tar files consisted of all the components above and a clean target that returns the directory to its untarred state.
