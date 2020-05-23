@@ -1,0 +1,308 @@
+Total: 345 samples
+     266  77.1%  77.1%      345 100.0% thread_routine
+      11   3.2%  80.3%       11   3.2% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:165
+      11   3.2%  83.5%       44  12.8% SortedList_lookup
+       9   2.6%  86.1%        9   2.6% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:1720
+       9   2.6%  88.7%        9   2.6% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:1721
+       8   2.3%  91.0%       35  10.1% SortedList_insert
+       6   1.7%  92.8%        6   1.7% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:130
+       5   1.4%  94.2%        5   1.4% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:203
+       4   1.2%  95.4%        4   1.2% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:200
+       4   1.2%  96.5%        4   1.2% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:1729
+       4   1.2%  97.7%        4   1.2% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:1730
+       3   0.9%  98.6%        3   0.9% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:205
+       2   0.6%  99.1%        2   0.6% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:160
+       2   0.6%  99.7%        2   0.6% _init
+       1   0.3% 100.0%        1   0.3% ?? /usr/src/debug////////glibc-2.17-c758a686/string/../sysdeps/x86_64/multiarch/strcmp-sse42.S:204
+       0   0.0% 100.0%      345 100.0% ?? /usr/src/debug////////glibc-2.17-c758a686/misc/../sysdeps/unix/sysv/linux/x86_64/clone.S:111
+       0   0.0% 100.0%      345 100.0% start_thread
+ROUTINE ====================== thread_routine in /u/cs/ugrad/mac/Desktop/CS111/Lab2B/lab2_list.c
+   266    345 Total samples (flat / cumulative)
+     .      .   56: void errorcheck(char* msg) {
+     .      .   57:   fprintf(stderr, "%s with error: %s\n", msg, strerror(errno));
+     .      .   58:   exit(1);
+     .      .   59: }
+     .      .   60: 
+---
+     .      .   61: void *thread_routine(void *arg) {
+     .      .   62:   int num = *((int*) arg);
+     .      .   63:   int i;
+     .      .   64:   int index;
+     .      .   65:   SubList_t* currList;
+     .      .   66: 
+     .      .   67:   int numLocks = 0;
+     .      .   68:   long long lock_nsec = 0;
+     .      .   69:   struct timespec startTime,endTime;
+     .      .   70:   // insert intialized elements
+     1      1   71:   for (i = num * numIterations; i < (num+1)*numIterations; i++) {
+     .      .   72:     index = 0;
+     .      .   73:     if (numLists != 1)
+     .      .   74:       index = hash_function(elements[i].key, numLists);
+     .      .   75:     currList = &list_arr[index];
+     .      .   76:     if (syncopts == 'm') {
+     .      .   77:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .   78:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .   79:       pthread_mutex_lock(&currList->mutex);
+     .      .   80:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .   81:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .   82:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .   83:       numLocks += 1;
+     .      .   84:     }
+     .      .   85:       
+     .      .   86:     else if (syncopts == 's') {
+     .      .   87:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .   88:         errorcheck("FAILED TO GET CLOCKTIME.");
+   148    148   89:       while (__sync_lock_test_and_set(&currList->spinLock,1));
+     .      .   90:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .   91:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .   92:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .   93:       numLocks += 1;
+     .      .   94:     } 
+     .     35   95:     SortedList_insert(currList->head, &elements[i]); 
+     .      .   96: 
+     .      .   97:     if (syncopts == 'm')
+     .      .   98:       pthread_mutex_unlock(&currList->mutex);
+     .      .   99: 
+     .      .  100:     else if (syncopts == 's')
+     .      .  101:       __sync_lock_release(&currList->spinLock);
+     .      .  102:   }
+     .      .  103: 
+     .      .  104:   // get the list length
+     .      .  105:   int len;
+     .      .  106:   int sum;
+     .      .  107:   for (i = 0; i < numLists; i++) {
+     .      .  108:     currList = &list_arr[i];
+     .      .  109:     if (syncopts == 'm') {
+     .      .  110:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  111:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  112:       pthread_mutex_lock(&currList->mutex);
+     .      .  113:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  114:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  115:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  116:       numLocks += 1;
+     .      .  117:     }
+     .      .  118: 
+     .      .  119:     else if (syncopts == 's') {
+     .      .  120:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  121:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  122:       while (__sync_lock_test_and_set(&currList->spinLock,1));
+     .      .  123:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  124:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  125:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  126:       numLocks += 1;
+     .      .  127:     }
+     .      .  128: 
+     .      .  129:     len = SortedList_length(currList->head);
+     .      .  130:     if (len == -1) {
+     .      .  131:       fprintf(stderr, "List is corrupted!\n");
+     .      .  132:       exit(2);
+     .      .  133:     }
+     .      .  134: 
+     .      .  135:     if (syncopts == 'm')
+     .      .  136:       pthread_mutex_unlock(&currList->mutex);
+     .      .  137: 
+     .      .  138:     else if (syncopts == 's')
+     .      .  139:       __sync_lock_release(&currList->spinLock);
+     .      .  140:     sum += len;
+     .      .  141:   }
+     .      .  142: 
+     .      .  143:   // looks up and delete all the keys it had previously inserted
+     .      .  144:   for (i = num * numIterations; i < (num+1)*numIterations; i++) {
+     .      .  145:     index = 0;
+     .      .  146:     if (numLists != 1)
+     .      .  147:       index = hash_function(elements[i].key, numLists);
+     .      .  148:     currList = &list_arr[index];
+     .      .  149: 
+     .      .  150:     if (syncopts == 'm') {
+     .      .  151:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  152:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  153:       pthread_mutex_lock(&currList->mutex);
+     .      .  154:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  155:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  156:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  157:       numLocks += 1;
+     .      .  158:     }
+     .      .  159:       
+     .      .  160:     else if (syncopts == 's') {
+     .      .  161:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  162:         errorcheck("FAILED TO GET CLOCKTIME.");
+   117    117  163:       while (__sync_lock_test_and_set(&currList->spinLock,1));
+     .      .  164:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  165:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  166:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  167:       numLocks += 1;
+     .      .  168:     }
+     .     44  169:     SortedListElement_t *target = SortedList_lookup(currList->head,elements[i].key);
+     .      .  170:     if (!target) {
+     .      .  171:       fprintf(stderr, "Failed to lookup element\n");
+     .      .  172:       exit(2);
+     .      .  173:     }
+     .      .  174: 
+     .      .  175:     if (SortedList_delete(target) == 1) {
+     .      .  176:       fprintf(stderr, "Failed to delete target\n");
+     .      .  177:       exit(2);
+     .      .  178:     }
+     .      .  179: 
+     .      .  180:     if (syncopts == 'm')
+     .      .  181:       pthread_mutex_unlock(&currList->mutex);
+     .      .  182: 
+     .      .  183:     else if (syncopts == 's')
+     .      .  184:       __sync_lock_release(&currList->spinLock);
+     .      .  185:   }
+     .      .  186: 
+     .      .  187:   LockStat_t* temp = (LockStat_t*) malloc(sizeof(LockStat_t));
+     .      .  188:   temp->nsec = lock_nsec;
+     .      .  189:   temp->n = numLocks;
+     .      .  190:   return temp;
+     .      .  191: }
+---
+     .      .  192: 
+     .      .  193: void randomizerstr(char* buf, const int len) {
+     .      .  194: 
+     .      .  195:     static const char a[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+     .      .  196:     int i;
+ROUTINE ====================== thread_routine in /u/cs/ugrad/mac/Desktop/CS111/Lab2B/lab2_list.c
+   266    345 Total samples (flat / cumulative)
+     .      .   56: void errorcheck(char* msg) {
+     .      .   57:   fprintf(stderr, "%s with error: %s\n", msg, strerror(errno));
+     .      .   58:   exit(1);
+     .      .   59: }
+     .      .   60: 
+---
+     .      .   61: void *thread_routine(void *arg) {
+     .      .   62:   int num = *((int*) arg);
+     .      .   63:   int i;
+     .      .   64:   int index;
+     .      .   65:   SubList_t* currList;
+     .      .   66: 
+     .      .   67:   int numLocks = 0;
+     .      .   68:   long long lock_nsec = 0;
+     .      .   69:   struct timespec startTime,endTime;
+     .      .   70:   // insert intialized elements
+     1      1   71:   for (i = num * numIterations; i < (num+1)*numIterations; i++) {
+     .      .   72:     index = 0;
+     .      .   73:     if (numLists != 1)
+     .      .   74:       index = hash_function(elements[i].key, numLists);
+     .      .   75:     currList = &list_arr[index];
+     .      .   76:     if (syncopts == 'm') {
+     .      .   77:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .   78:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .   79:       pthread_mutex_lock(&currList->mutex);
+     .      .   80:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .   81:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .   82:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .   83:       numLocks += 1;
+     .      .   84:     }
+     .      .   85:       
+     .      .   86:     else if (syncopts == 's') {
+     .      .   87:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .   88:         errorcheck("FAILED TO GET CLOCKTIME.");
+   148    148   89:       while (__sync_lock_test_and_set(&currList->spinLock,1));
+     .      .   90:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .   91:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .   92:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .   93:       numLocks += 1;
+     .      .   94:     } 
+     .     35   95:     SortedList_insert(currList->head, &elements[i]); 
+     .      .   96: 
+     .      .   97:     if (syncopts == 'm')
+     .      .   98:       pthread_mutex_unlock(&currList->mutex);
+     .      .   99: 
+     .      .  100:     else if (syncopts == 's')
+     .      .  101:       __sync_lock_release(&currList->spinLock);
+     .      .  102:   }
+     .      .  103: 
+     .      .  104:   // get the list length
+     .      .  105:   int len;
+     .      .  106:   int sum;
+     .      .  107:   for (i = 0; i < numLists; i++) {
+     .      .  108:     currList = &list_arr[i];
+     .      .  109:     if (syncopts == 'm') {
+     .      .  110:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  111:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  112:       pthread_mutex_lock(&currList->mutex);
+     .      .  113:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  114:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  115:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  116:       numLocks += 1;
+     .      .  117:     }
+     .      .  118: 
+     .      .  119:     else if (syncopts == 's') {
+     .      .  120:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  121:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  122:       while (__sync_lock_test_and_set(&currList->spinLock,1));
+     .      .  123:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  124:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  125:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  126:       numLocks += 1;
+     .      .  127:     }
+     .      .  128: 
+     .      .  129:     len = SortedList_length(currList->head);
+     .      .  130:     if (len == -1) {
+     .      .  131:       fprintf(stderr, "List is corrupted!\n");
+     .      .  132:       exit(2);
+     .      .  133:     }
+     .      .  134: 
+     .      .  135:     if (syncopts == 'm')
+     .      .  136:       pthread_mutex_unlock(&currList->mutex);
+     .      .  137: 
+     .      .  138:     else if (syncopts == 's')
+     .      .  139:       __sync_lock_release(&currList->spinLock);
+     .      .  140:     sum += len;
+     .      .  141:   }
+     .      .  142: 
+     .      .  143:   // looks up and delete all the keys it had previously inserted
+     .      .  144:   for (i = num * numIterations; i < (num+1)*numIterations; i++) {
+     .      .  145:     index = 0;
+     .      .  146:     if (numLists != 1)
+     .      .  147:       index = hash_function(elements[i].key, numLists);
+     .      .  148:     currList = &list_arr[index];
+     .      .  149: 
+     .      .  150:     if (syncopts == 'm') {
+     .      .  151:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  152:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  153:       pthread_mutex_lock(&currList->mutex);
+     .      .  154:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  155:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  156:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  157:       numLocks += 1;
+     .      .  158:     }
+     .      .  159:       
+     .      .  160:     else if (syncopts == 's') {
+     .      .  161:       if (clock_gettime(CLOCK_MONOTONIC, &startTime) < 0)
+     .      .  162:         errorcheck("FAILED TO GET CLOCKTIME.");
+   117    117  163:       while (__sync_lock_test_and_set(&currList->spinLock,1));
+     .      .  164:       if (clock_gettime(CLOCK_MONOTONIC, &endTime) < 0)
+     .      .  165:         errorcheck("FAILED TO GET CLOCKTIME.");
+     .      .  166:       lock_nsec += 1000000000 * (endTime.tv_sec - startTime.tv_sec) + (endTime.tv_nsec - startTime.tv_nsec);
+     .      .  167:       numLocks += 1;
+     .      .  168:     }
+     .     44  169:     SortedListElement_t *target = SortedList_lookup(currList->head,elements[i].key);
+     .      .  170:     if (!target) {
+     .      .  171:       fprintf(stderr, "Failed to lookup element\n");
+     .      .  172:       exit(2);
+     .      .  173:     }
+     .      .  174: 
+     .      .  175:     if (SortedList_delete(target) == 1) {
+     .      .  176:       fprintf(stderr, "Failed to delete target\n");
+     .      .  177:       exit(2);
+     .      .  178:     }
+     .      .  179: 
+     .      .  180:     if (syncopts == 'm')
+     .      .  181:       pthread_mutex_unlock(&currList->mutex);
+     .      .  182: 
+     .      .  183:     else if (syncopts == 's')
+     .      .  184:       __sync_lock_release(&currList->spinLock);
+     .      .  185:   }
+     .      .  186: 
+     .      .  187:   LockStat_t* temp = (LockStat_t*) malloc(sizeof(LockStat_t));
+     .      .  188:   temp->nsec = lock_nsec;
+     .      .  189:   temp->n = numLocks;
+     .      .  190:   return temp;
+     .      .  191: }
+---
+     .      .  192: 
+     .      .  193: void randomizerstr(char* buf, const int len) {
+     .      .  194: 
+     .      .  195:     static const char a[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+     .      .  196:     int i;
