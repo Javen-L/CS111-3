@@ -169,9 +169,9 @@ int main(int argc, char *argv[]) {
         if (difftime(rawEnd,rawStart) == period) {
             char str[20];
             if (scaleF)
-                sprintf(str, "%d:%d:%d %.1f\n", end->tm_hour, end->tm_min, end->tm_sec, temperatureF);
+                sprintf(str, "%02d:%02d:%02d %.1f\n", end->tm_hour, end->tm_min, end->tm_sec, temperatureF);
             if (scaleC)
-                sprintf(str, "%d:%d:%d %.1f\n", end->tm_hour, end->tm_min, end->tm_sec, temperatureC);
+                sprintf(str, "%02d:%02d:%02d %.1f\n", end->tm_hour, end->tm_min, end->tm_sec, temperatureC);
             
             // write report to stdout (fd 1)
             if (genReport) {
@@ -192,9 +192,7 @@ int main(int argc, char *argv[]) {
     time(&rawFinal);
     final = localtime(&rawFinal);
     char exitMsg[20];
-        sprintf(exitMsg, "%d:%d:%d SHUTDOWN\n", final->tm_hour, final->tm_min, final->tm_sec);
-    //if (write(1, exitMsg, strlen(exitMsg)) < 0)
-        //exit_with_error("ERROR: Unable to write to output");
+        sprintf(exitMsg, "%02d:%02d:%02d SHUTDOWN\n", final->tm_hour, final->tm_min, final->tm_sec);
     if (log_flag) {
         if (write(log_fd, exitMsg, strlen(exitMsg)) < 0)
             exit_with_error("ERROR: Unable to write to log file");
