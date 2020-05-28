@@ -13,4 +13,4 @@ Project 1B: Compressed Communications | 93/100
 Project 2A: Locks | 93/100
 Project 2B: Lock Granularity and Performance | /100
 Project 4A: Beaglebone Configuration | 100/100
-Project 4B: Beaglebone Sensor Input | /100
+Project 4B: Beaglebone Sensor Input | 96/100
