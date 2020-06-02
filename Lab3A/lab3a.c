@@ -107,6 +107,31 @@ void formatTime(__u32 time, char* buffer) {
     strftime(buffer, 20, "%m/%d/%y %H:%M:%S", info);
 }
 
+void printDirectoryEntries(__u32 num, struct ext2_inode inode) {
+    int i;
+    for (i = 0; i < 12; i++) { // 12 directory blocks
+        if (inode.i_block[i] != 0) {
+            unsigned int byte_offset = 0;
+            while (byte_offset < block_size) {
+                struct ext2_dir_entry dir;
+                if (pread(mount, &dir, sizeof(dir), block_offset(inode.i_block[i]) + byte_offset) < 0)
+                    exit_with_error("Failed to read Directory Entry");
+
+                if (dir.inode != 0)
+                    fprintf(stdout,"DIRENT,%d,%d,%d,%d,%d,'%s'\n",
+                        num, // parent inode number
+                        byte_offset, // logical byte offset within the directory
+                        dir.inode,// inode number of referenced file
+                        dir.rec_len, // entry length
+                        dir.name_len, // name length
+                        dir.name // name
+                        );
+                byte_offset += dir.rec_len;
+            }
+        }
+    }
+}
+
 void printInode(__u32 inode_num, __u32 inodeTable) {      
     struct ext2_inode inode;
     if (pread(mount, &inode, sizeof(inode), inode_offset(inodeTable, inode_num-1)) < 0)
@@ -141,6 +166,9 @@ void printInode(__u32 inode_num, __u32 inodeTable) {
             }
         }
         fprintf(stdout, "\n");
+
+        if (filetype == 'd')
+            printDirectoryEntries(inode_num, inode);
     }
 }
 
