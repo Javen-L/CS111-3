@@ -119,7 +119,7 @@ void printInode(__u32 inode_num, __u32 inodeTable) {
         formatTime(inode.i_ctime, ctime);
         formatTime(inode.i_mtime, mtime);
 
-        fprintf(stdout, "INODE,%d,%c,%o,%d,%d,%d,%s,%s,%s,%d,%d\n",
+        fprintf(stdout, "INODE,%d,%c,%o,%d,%d,%d,%s,%s,%s,%d,%d",
             inode_num, // inode number
             filetype, // file type
             inode.i_mode & 0x0FFF, // mode, lower 12-bits
@@ -132,6 +132,15 @@ void printInode(__u32 inode_num, __u32 inodeTable) {
             inode.i_size, // file size
             inode.i_blocks // number of blocks of disk space
             );  
+        
+        // for ordinary files ('f' and 'd') and symbolic links w length greater than 60, next 15 fields are block addresses
+        if (filetype == 'f' || filetype == 'd' || (filetype == 's' && inode.i_size > 60)) {
+            int i;
+            for (i = 0; i < 15; i++) {
+                fprintf(stdout, ",%d", inode.i_block[i]);
+            }
+        }
+        fprintf(stdout, "\n");
     }
 }
 
