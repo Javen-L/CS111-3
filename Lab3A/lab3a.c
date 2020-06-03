@@ -66,6 +66,7 @@ int block_offset(int num) {
 void printFreeBlocks(int num) {
     struct ext2_group_desc group = group_desc_table[num];
     char* bytes = malloc(block_size * sizeof(char));
+    //char bytes[block_size+1];
     if (pread(mount, bytes, block_size, block_offset(group.bg_block_bitmap)) < 0)
         exit_with_error("Failed to read Block Bitmap");
 
@@ -130,19 +131,6 @@ void printDirectoryEntries(__u32 num, struct ext2_inode inode) {
             }
         }
     }
-    //for indirect entries
-    //level 1
-    if(inode.i_block[12] > 0){
-        printIndrectBlock(num, 1, 12, 12);
-    }
-    //level 2
-    if(inode.i_block[13] > 0){
-        printIndrectBlock(num, 2, 13, (256+12));
-    }
-    //level 3
-    if(inode.i_block[14] > 0){
-        printIndrectBlock(num, 3, 14, (65536+256+12));
-    }
 }
 
 void printIndirectBlock(int num, int level, int blockN, int levelOffset){
@@ -156,23 +144,25 @@ void printIndirectBlock(int num, int level, int blockN, int levelOffset){
     int inDirectBlockOffset = block_size*blockN;
     if (pread(mount, block, block_size, inDirectBlockOffset) < 0)
         exit_with_error("Failed to read Directory Entry for Indirect Entry");
-    i = 0;
-    for(; i < block_number; i++){
+    int i;
+    for(i = 0 ; i < (int) block_number; i++){
         if(block[i] != 0){
             fprintf(stdout,"INDIRECT,%d,%d,%d,%d,%u\n",
                 num,
                 level,
                 levelOffset,
                 blockN, 
-                block[i],
+                block[i]
                 );
+                
             if(level != 1){
                 level--;
-                printIndirectBlock(element[i], num, levelOffset, level);
+                printIndirectBlock(block[i], num, levelOffset, level);
             }
         }
         levelOffset = levelOffset+addOffset;
     }
+    //free(block);
 }
 
 void printInode(__u32 inode_num, __u32 inodeTable) {      
@@ -212,6 +202,21 @@ void printInode(__u32 inode_num, __u32 inodeTable) {
 
         if (filetype == 'd')
             printDirectoryEntries(inode_num, inode);
+
+        if (filetype == 'f' || filetype == 'd') {
+            //for indirect entries
+            //level 1
+            if(inode.i_block[12] > 0)
+                printIndirectBlock(inode_num, 1, 12, 12);
+
+            //level 2
+            if(inode.i_block[13] > 0)
+                printIndirectBlock(inode_num, 2, 13, (256+12));
+
+            //level 3
+            if(inode.i_block[14] > 0)
+                printIndirectBlock(inode_num, 3, 14, (65536+256+12));
+        }
     }
 }
 
@@ -219,6 +224,7 @@ void printInodesSummary(int num) {
     struct ext2_group_desc group = group_desc_table[num];
     __u32 inodeTable = group.bg_inode_table;
     int numBytes = superblock.s_inodes_per_group / 8;
+    //char bytes[numBytes];
     char* bytes = malloc(numBytes * sizeof(char));
     if (pread(mount, bytes, block_size, block_offset(group.bg_inode_bitmap)) < 0)
         exit_with_error("Failed to read Inode Bitmap");
@@ -228,8 +234,8 @@ void printInodesSummary(int num) {
     for (i = 0; i < numBytes; i++) {
         char byte = bytes[i];
         for (j = 0; j < 8; j++) { // read each bit of the byte
-            int free = !(byte & 1); // 1 means "used", 0 means "free/available"
-            if (free)
+            int allocated = (byte & 1); // 1 means "used", 0 means "free/available"
+            if (!allocated)
                 fprintf(stdout, "IFREE,%d\n", inode_num);
             else // allocated
                 printInode(inode_num, inodeTable);
@@ -238,7 +244,7 @@ void printInodesSummary(int num) {
             inode_num++;
         }
     }
-    free(bytes);
+    //free(bytes);
 }
 
 int group_offset(int num) {
@@ -252,8 +258,10 @@ int main(int argc, char *argv[]){
     }
         
     mount = open(argv[1], O_RDONLY);
-    if (mount < 0)
-        exit_with_error("Failed to open given image");
+    if (mount < 0) {
+        fprintf(stderr, "Failed to open given image with error: %s\n", strerror(errno));
+        exit(1);
+    }
 
     printSB();
     group_desc_table = malloc(numGroups * sizeof(struct ext2_group_desc));
