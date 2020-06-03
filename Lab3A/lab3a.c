@@ -136,27 +136,26 @@ void printIndirectBlock(int num, int level, int blockN, int levelOffset){
     __u32 *block = malloc(block_size*sizeof(__u32));
     __u32 block_number = block_size/4;
     int addOffset = 1;
-    if(level == 2)
+    if (level == 2)
         addOffset = 256;
-    else if(level == 3)
-        addOffset = 65536;
+    else if (level == 3)
+        addOffset = 65536; // 256^2
     int inDirectBlockOffset = block_size*blockN;
     if (pread(mount, block, block_size, inDirectBlockOffset) < 0)
         exit_with_error("Failed to read Directory Entry for Indirect Entry");
     int i;
-    for(i = 0 ; i < (int) block_number; i++){
+    for (i = 0 ; i < (int) block_number; i++) {
         if(block[i] != 0){
             fprintf(stdout,"INDIRECT,%d,%d,%d,%d,%u\n",
-                num,
-                level,
-                levelOffset,
-                blockN, 
-                block[i]
-                );
+                num, // inode number of the owning file
+                level, // level of indirection for the block being scanned
+                levelOffset, // logical block offset
+                blockN, // block number of the indirect block being scanned
+                block[i]); // block number of the referenced block
                 
-            if(level != 1){
+            if (level != 1) {
                 level--;
-                printIndirectBlock(block[i], num, levelOffset, level);
+                printIndirectBlock(num, level, block[i], levelOffset);
             }
         }
         levelOffset = levelOffset+addOffset;
@@ -203,17 +202,14 @@ void printInode(__u32 inode_num, __u32 inodeTable) {
         
         // for each file or directory inodes, scan each direct blocks and print indirect entries
         if (filetype == 'f' || filetype == 'd') {
-            //level 1
-            if(inode.i_block[12] > 0) // single indirect blocks is at 13th block
-                printIndirectBlock(inode_num, 1, 12, 12);
+            if (inode.i_block[12] != 0) // single indirect blocks is at 13th block
+                printIndirectBlock(inode_num, 1, inode.i_block[12], 12);
 
-            //level 2
-            if(inode.i_block[13] > 0) // doubly indirect blocks is at 14th block
-                printIndirectBlock(inode_num, 2, 13, (256+12));
+            if (inode.i_block[13] != 0) // double indirect blocks is at 14th block
+                printIndirectBlock(inode_num, 2, inode.i_block[13], (256+12));
 
-            //level 3
-            if(inode.i_block[14] > 0) // singly indirect block is at 15th block
-                printIndirectBlock(inode_num, 3, 14, (65536+256+12));
+            if (inode.i_block[14] != 0) // triple indirect block is at 15th block
+                printIndirectBlock(inode_num, 3, inode.i_block[14], (256*256+256+12));
         }
     }
 }
