@@ -130,6 +130,49 @@ void printDirectoryEntries(__u32 num, struct ext2_inode inode) {
             }
         }
     }
+    //for indirect entries
+    //level 1
+    if(inode.i_block[12] > 0){
+        printIndrectBlock(num, 1, 12, 12);
+    }
+    //level 2
+    if(inode.i_block[13] > 0){
+        printIndrectBlock(num, 2, 13, (256+12));
+    }
+    //level 3
+    if(inode.i_block[14] > 0){
+        printIndrectBlock(num, 3, 14, (65536+256+12));
+    }
+}
+
+void printIndirectBlock(int num, int level, int blockN, int levelOffset){
+    __u32 *block = malloc(block_size*sizeof(__u32));
+    __u32 block_number = block_size/4;
+    int addOffset = 1;
+    if(level == 2)
+        addOffset = 256;
+    else if(level == 3)
+        addOffset = 65536;
+    int inDirectBlockOffset = block_size*blockN;
+    if (pread(mount, block, block_size, inDirectBlockOffset) < 0)
+        exit_with_error("Failed to read Directory Entry for Indirect Entry");
+    i = 0;
+    for(; i < block_number; i++){
+        if(block[i] != 0){
+            fprintf(stdout,"INDIRECT,%d,%d,%d,%d,%u\n",
+                num,
+                level,
+                levelOffset,
+                blockN, 
+                block[i],
+                );
+            if(level != 1){
+                level--;
+                printIndirectBlock(element[i], num, levelOffset, level);
+            }
+        }
+        levelOffset = levelOffset+addOffset;
+    }
 }
 
 void printInode(__u32 inode_num, __u32 inodeTable) {      
