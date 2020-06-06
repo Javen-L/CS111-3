@@ -1,0 +1,8 @@
+#!/bin/bash
+# NAME: Anh Mac,William Chen
+# EMAIL: anhmvc@gmail.com,billy.lj.chen@gmail.com
+# UID: 905111606,405131881
+
+python3 lab3b.py $1
+
+exit $?
