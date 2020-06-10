@@ -77,11 +77,14 @@ class breakSuperBlock:
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("Invalid arguments")
+        sys.exit("Invalid number of arguments")
 
     # read csv file
-    file = sys.argv[1]
-    with open(file, newline='') as csvfile:
+    try:
+        file = open(sys.argv[1], 'r')
+    except (OSError, IOError) as e:
+        sys.exit("File not found")
+    with file as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         for row in reader:
             if row[0] == "INODE":
@@ -111,8 +114,8 @@ def main():
     blockSize = superblock.numBlocks
     inodeSize = superblock.numInodes
 
-    for i in range(0, len(i)):
-        if inode[i].ftype != 's' or inode[i].size > blockSize:
+    for i in range(len(inode)):
+        if inode[i].fileType != 's' or inode[i].fileSize > blockSize:
             offset = 0
             for block in range(0, len(inode[i].dirent)):
                 bNum = inode[i].dirent[block]
@@ -156,7 +159,7 @@ def main():
                     else:
                         blocktoInodes[bNum] = [[inodeN, off, indirectN + 1]]
     
-    for i in range(0, len(indirectN)):
+    for i in range(len(indirect)):
         inodeN = indirect[i].inodeNum
         referenceBlock = indirect[i].referenceBlockNum
         off = indirect[i].offset
@@ -199,7 +202,7 @@ def main():
             print("ALLOCATED BLOCK " + str(i) + " ON FREELIST")
         if i not in blocktoInodes and i not in freeBlock:
             print("UNREFERENCED BLOCK " + str(i))
-
+    '''
     for i in duplicates:
         for x in blocktoInodes[i]:
             if x[-1] == 3:
@@ -210,6 +213,7 @@ def main():
                 print("DUPLICATE INDIRECT BLOCK " + str(i) + " IN INODE " + str(x[0]) + " AT OFFSET " + str(x[1]))
             else:
                 print("DUPLICATE BLOCK " + str(i) + " IN INODE " + str(x[0]) + " AT OFFSET " + str(x[1]))
+    '''
     
     #I-node Allocation Audits
     used = []
@@ -227,36 +231,44 @@ def main():
             print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
 
     #Directory Consistency Audits
-    numLinks = numpy.zeros(superblock.firstInode + inodeSize)
-    for i in range(0, len(inode)):
+    linkCount = numpy.zeros(superblock.inodesPerGroup)
+    for i in range(len(dirent)):
+        parentInode = dirent[i].parentInodeNum
+        inodeN = dirent[i].inodeNum
+        linkCount[inodeN] += 1
+        if parentInode <= 0 or parentInode > superblock.numInodes:
+            print("DIRECTORY INODE " + str(inodeN) + " NAME " + dirent[i].name + " INVALID INODE " + str(direntInode))
+        elif parentInode not in used:
+            print("DIRECTORY INODE " + str(inodeN) + " NAME " + dirent[i].name + " UNALLOCATED INODE " + str(parenttInode))
+    
+    for i in range(len(inode)):
         inodeN = inode[i].inodeNum
         nLink = inode[i].numLinks
-        if numLinks[inodeN] != nLink:
-            print("INODE " + str(inodeN) + " HAS " + str(int(numLinks[inodeN])) + " LINKS BUT LINKCOUNT IS " + str(nLink))
+        if linkCount[inodeN] != nLink:
+            print("INODE " + str(inodeN) + " HAS " + str(int(linkCount[inodeN])) + " LINKS BUT LINKCOUNT IS " + str(int(nLink)))
+            
+    '''
+    #parents = numpy.zeros(superblock.inodesPerGroup)
+    #parents[2] = 2
+    for i in range(len(dirent)):
+        direntInode = dirent[i].inodeNum
+        if dirent[i].name == "'.'": # itself
+            parentInode = dirent[i].parentInodeNum
+        if dirent[i].name == "'..'": # parent
+            parent = dirent[i].inodeNum
+        if parentInode != parent:
+            print("DIRECTOR INODE " + str(parentInode) + " NAME '..' LINK TO INODE " + str(0) + " SHOULD BE " + str(0))
+            print("DIRECTOR INODE " + str(direntInode) + " NAME '.' LINK TO INODE " + str(0) + " SHOULD BE " + str(0))
+        #if dirent[i].name != "'.'" and dirent[i].name != "'..'":
+            #parents[dirent[i].parentInodeNum] = dirent[i].inodeNum
     
-    for i in range(0, len(dirent)):
-        direntInode = dirent[i].inode
-        inodeN = dirent[i].inodeNum
-        if direntInode <= 0 or direntInode > superblock.numInodes:
-            print("DIRECTORY INODE " + str(inodeN) + " NAME " + dirent[i].name + " INVALID INODE " + str(direntInode))
-        elif direntInode not in used:
-            print("DIRECTORY INODE " + str(inodeN) + " NAME " + dirent[i].name + " UNALLOCATED INODE " + str(direntInode))
-        else:
-            numLinks[direntInode] = numLinks[direntInode] + 1
-
-    parents = numpy.zeros(superblock.firstInode + superblock.numInodes)
-    parents[2] = 2
-    for i in range(0, len(dirent)):
-        if dirent[i].name != "'.'" and dirent[i].name != "'..'":
-            parents[dirent[i].inode] = dirent[i].inodeNum
-
-    for i in range(0, len(dirent)):
+    for i in range(len(dirent)):
         direntInodeNum = dirent[i].inodeNum
-        direntInode = dirent[i].inode
+        direntInode = dirent[i].parentInodeNum
         if direntInode != parents[direntInodeNum] and dirent[i].name == "'..'":
             print("DIRECTORY INODE " + str(direntInodeNum) + " NAME '..' LINK TO INODE " + str(direntInode) + " SHOULD BE " + str(int(parents[direntInodeNum])))
         if direntInodeNum != direntInode and dirent[i].name == "'.'":
             print("DIRECTORY INODE " + str(direntInodeNum) + " NAME '.' LINK TO INODE " + str(direntInode) + " SHOULD BE " + str(direntInodeNum))
-
+    '''
 if __name__ == '__main__':
     main()
