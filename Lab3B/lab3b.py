@@ -129,7 +129,7 @@ def main():
                         duplicates.add(bNum)
                         blocktoInodes[bNum].append([inodeN, offset, 0])
                     else:
-                        blocktoInodes[bNum] = [inodeN, offset, 0] #got rid of ddoulbe brackets
+                        blocktoInodes[bNum] = [[inodeN, offset, 0]]
                 
                 offset = offset + 1
 
@@ -173,7 +173,7 @@ def main():
                     blocktoInodes[referenceBlock].append([inodeN, off, 1])
                     duplicates.add(referenceBlock)
                 else:
-                    blocktoInodes[referenceBlock] = [inodeN, off, 1] #got rid of double brackets
+                    blocktoInodes[referenceBlock] = [[inodeN, off, 1]] 
         elif indirect[i].level == 2:
             if referenceBlock < firstBlockIndex and referenceBlock > 0:
                 print("RESERVED DOUBLE INDIRECT BLOCK " + str(referenceBlock) + " IN INODE " + str(inodeN) + " AT OFFSET " + str(off))
@@ -184,7 +184,7 @@ def main():
                     blocktoInodes[referenceBlock].append([inodeN, off, 2])
                     duplicates.add(referenceBlock)
                 else:
-                    blocktoInodes[referenceBlock] = [inodeN, off, 2] #got rid of double brackets
+                    blocktoInodes[referenceBlock] = [[inodeN, off, 2]]
         elif indirect[i].level == 3:
             if referenceBlock < firstBlockIndex and referenceBlock > 0:
                 print("RESERVED TRIPLE INDIRECT BLOCK " + str(referenceBlock) + " IN INODE " + str(inodeN) + " AT OFFSET " + str(off))
@@ -195,14 +195,15 @@ def main():
                     blocktoInodes[referenceBlock].append([inodeN, off, 3])
                     duplicates.add(referenceBlock)
                 else:
-                    blocktoInodes[referenceBlock] = [inodeN, off, 3] #got rid of double brackets
+                    blocktoInodes[referenceBlock] = [[inodeN, off, 3]]
     
     for i in range(firstBlockIndex, blockSize):
         if i in blocktoInodes and i in freeBlock:
             print("ALLOCATED BLOCK " + str(i) + " ON FREELIST")
         if i not in blocktoInodes and i not in freeBlock:
             print("UNREFERENCED BLOCK " + str(i))
-    '''
+    
+
     for i in duplicates:
         for x in blocktoInodes[i]:
             if x[-1] == 3:
@@ -213,7 +214,7 @@ def main():
                 print("DUPLICATE INDIRECT BLOCK " + str(i) + " IN INODE " + str(x[0]) + " AT OFFSET " + str(x[1]))
             else:
                 print("DUPLICATE BLOCK " + str(i) + " IN INODE " + str(x[0]) + " AT OFFSET " + str(x[1]))
-    '''
+
     
     #I-node Allocation Audits
     used = []
@@ -231,15 +232,16 @@ def main():
             print("UNALLOCATED INODE " + str(i) + " NOT ON FREELIST")
 
     #Directory Consistency Audits
-    linkCount = numpy.zeros(superblock.inodesPerGroup)
-    for i in range(len(dirent)):
+    linkCount = numpy.zeros(superblock.firstInode + superblock.numInodes)
+    for i in range(0, len(dirent)):
         parentInode = dirent[i].parentInodeNum
         inodeN = dirent[i].inodeNum
-        linkCount[inodeN] += 1
-        if parentInode <= 0 or parentInode > superblock.numInodes:
-            print("DIRECTORY INODE " + str(inodeN) + " NAME " + dirent[i].name + " INVALID INODE " + str(direntInode))
-        elif parentInode not in used:
-            print("DIRECTORY INODE " + str(inodeN) + " NAME " + dirent[i].name + " UNALLOCATED INODE " + str(parenttInode))
+        if inodeN <= 0 or inodeN > superblock.numInodes:
+            print("DIRECTORY INODE " + str(parentInode) + " NAME " + dirent[i].name + " INVALID INODE " + str(inodeN))
+        elif inodeN not in used:
+            print("DIRECTORY INODE " + str(parentInode) + " NAME " + dirent[i].name + " UNALLOCATED INODE " + str(inodeN))
+        else:
+            linkCount[inodeN] = linkCount[inodeN] + 1
     
     for i in range(len(inode)):
         inodeN = inode[i].inodeNum
@@ -247,28 +249,23 @@ def main():
         if linkCount[inodeN] != nLink:
             print("INODE " + str(inodeN) + " HAS " + str(int(linkCount[inodeN])) + " LINKS BUT LINKCOUNT IS " + str(int(nLink)))
             
-    '''
-    #parents = numpy.zeros(superblock.inodesPerGroup)
-    #parents[2] = 2
+    parents = numpy.zeros(superblock.firstInode + superblock.numInodes)
+    parents[2] = 2
     for i in range(len(dirent)):
-        direntInode = dirent[i].inodeNum
-        if dirent[i].name == "'.'": # itself
-            parentInode = dirent[i].parentInodeNum
-        if dirent[i].name == "'..'": # parent
-            parent = dirent[i].inodeNum
-        if parentInode != parent:
-            print("DIRECTOR INODE " + str(parentInode) + " NAME '..' LINK TO INODE " + str(0) + " SHOULD BE " + str(0))
-            print("DIRECTOR INODE " + str(direntInode) + " NAME '.' LINK TO INODE " + str(0) + " SHOULD BE " + str(0))
-        #if dirent[i].name != "'.'" and dirent[i].name != "'..'":
-            #parents[dirent[i].parentInodeNum] = dirent[i].inodeNum
+        inodeN = dirent[i].inodeNum
+        parentInode = dirent[i].parentInodeNum
+        name = dirent[i].name
+        if name != "'.'" and name != "'..'":
+            parents[inodeN] = parentInode
     
     for i in range(len(dirent)):
-        direntInodeNum = dirent[i].inodeNum
-        direntInode = dirent[i].parentInodeNum
-        if direntInode != parents[direntInodeNum] and dirent[i].name == "'..'":
-            print("DIRECTORY INODE " + str(direntInodeNum) + " NAME '..' LINK TO INODE " + str(direntInode) + " SHOULD BE " + str(int(parents[direntInodeNum])))
-        if direntInodeNum != direntInode and dirent[i].name == "'.'":
-            print("DIRECTORY INODE " + str(direntInodeNum) + " NAME '.' LINK TO INODE " + str(direntInode) + " SHOULD BE " + str(direntInodeNum))
-    '''
+        inodeN = dirent[i].inodeNum
+        parentInode = dirent[i].parentInodeNum
+        name = dirent[i].name
+        if inodeN != parents[parentInode] and name == "'..'":
+            print("DIRECTORY INODE " + str(parentInode) + " NAME '..' LINK TO INODE " + str(inodeN) + " SHOULD BE " + str(int(parents[parentInode])))
+        if parentInode != inodeN and name == "'.'":
+            print("DIRECTORY INODE " + str(parentInode) + " NAME '.' LINK TO INODE " + str(inodeN) + " SHOULD BE " + str(parentInode))
+
 if __name__ == '__main__':
     main()
