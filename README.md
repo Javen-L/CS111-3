@@ -13,6 +13,7 @@ Project 1B: Compressed Communications | 93/100
 Project 2A: Locks | 93/100
 Project 2B: Lock Granularity and Performance | 93/100
 Project 3A: File System Interpretation | 93/100
-Project 3B: File System Consistency Analysis | /100
+Project 3B: File System Consistency Analysis | 99/100
 Project 4A: Beaglebone Configuration | 100/100
 Project 4B: Beaglebone Sensor Input | 96/100
+Project 4C: Internet of Things Security | /100
