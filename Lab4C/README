@@ -1,0 +1,14 @@
+NAME: Anh Mac
+EMAIL: anhmvc@gmail.com
+UID: 905111606
+
+lab4c_tcp.c: a C source module for an embedded application that communicates with a logging server through a TCP connection amd sends temperature readings via a socket.
+
+lab4c_tls.c: a C source module for an embedded application that communicates with a logging server through an authenticated TLS Session Encryption and sends temperature via a socket.
+
+Makefile:
+    .. default: build both versions of the lab4c_tcp and lab4c_tls programs
+    .. clean: delete all programs and output created by the Makefile and restore the directory to its untarred state
+    .. dist: create the deliverable tarball
+
+README: this file which contains descriptions of the included files.
