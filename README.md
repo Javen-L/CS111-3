@@ -16,4 +16,4 @@ Project 3A: File System Interpretation | 93/100
 Project 3B: File System Consistency Analysis | 99/100
 Project 4A: Beaglebone Configuration | 100/100
 Project 4B: Beaglebone Sensor Input | 96/100
-Project 4C: Internet of Things Security | /100
+Project 4C: Internet of Things Security | 100/100
